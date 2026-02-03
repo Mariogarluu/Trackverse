@@ -107,7 +107,7 @@ export class MediaDetailModalComponent {
       }
 
       // Quick add (same as card for now, simple toggle)
-      this.mediaService.trackItem(session.user.id, this.item.id, this.item.type)
+      this.mediaService.trackItem(session.user.id, this.item)
          .then(() => {
             this.toast.success(`Seguido ${this.item!.title}`);
             this.statusUpdated.emit();
