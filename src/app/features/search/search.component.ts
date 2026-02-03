@@ -127,7 +127,7 @@ export class SearchComponent {
       }
 
       // Quick add to library for demo
-      this.mediaService.trackItem(session.user.id, item.id, item.type)
+      this.mediaService.trackItem(session.user.id, item)
         .then(() => this.toast.success(`Se añadió ${item.title} a tu biblioteca!`))
         .catch(e => {
           console.error(e);

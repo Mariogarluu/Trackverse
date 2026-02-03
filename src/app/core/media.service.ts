@@ -89,7 +89,7 @@ export class MediaService {
                 p_creator: creator,
                 p_total: total,
                 p_status: 'pending'
-            });
+            } as any);
     }
 
     // Reuse logic or centralize this mapper if used in multiple places
