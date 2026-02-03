@@ -86,6 +86,10 @@ export class RecommendationService {
         }
     }
 
+    clearRecommendation() {
+        this._recommendation.set(null);
+    }
+
     // Private Helper to normalize data
     private mapToUniversal(dbItem: any): UniversalMediaItem {
         let type: MediaType = 'game';
