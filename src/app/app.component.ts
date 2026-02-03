@@ -21,14 +21,14 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
           </svg>
-          <span class="text-[10px] font-medium uppercase tracking-wider">Home</span>
+          <span class="text-[10px] font-medium uppercase tracking-wider">Inicio</span>
         </a>
 
         <a routerLink="/library" routerLinkActive="text-primary" class="flex flex-col items-center gap-1 text-slate-400 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
           </svg>
-          <span class="text-[10px] font-medium uppercase tracking-wider">Library</span>
+          <span class="text-[10px] font-medium uppercase tracking-wider">Biblioteca</span>
         </a>
 
         <a routerLink="/search" routerLinkActive="text-primary" class="flex flex-col items-center gap-1 text-slate-400 transition-colors">
@@ -51,7 +51,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
            <div class="w-6 h-6 rounded-full bg-slate-300 overflow-hidden">
              <!-- <img src="..." /> -->
            </div>
-           <span class="text-[10px] font-medium uppercase tracking-wider">Profile</span>
+           <span class="text-[10px] font-medium uppercase tracking-wider">Perfil</span>
         </a>
 
       </nav>
@@ -65,15 +65,15 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
         <nav class="flex flex-col gap-4">
             <a routerLink="/home" routerLinkActive="bg-primary/10 text-primary" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                <span class="font-medium">Home</span>
+                <span class="font-medium">Inicio</span>
             </a>
             <a routerLink="/library" routerLinkActive="bg-primary/10 text-primary" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                <span class="font-medium">Library</span>
+                <span class="font-medium">Biblioteca</span>
             </a>
             <a routerLink="/search" routerLinkActive="bg-primary/10 text-primary" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                <span class="font-medium">Search</span>
+                <span class="font-medium">Buscar</span>
             </a>
             <a routerLink="/social" routerLinkActive="bg-primary/10 text-primary" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
