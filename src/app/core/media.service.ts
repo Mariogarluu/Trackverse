@@ -67,25 +67,29 @@ export class MediaService {
     /**
      * Añade un nuevo ítem al seguimiento del usuario.
      * 
+     * Utiliza una función RPC ('track_new_item') para:
+     * 1. Verificar si el ítem ya existe en el catálogo (por external_id).
+     * 2. Si no existe, crearlo (usando title, cover, metadata).
+     * 3. Crear la relación en user_media_items.
+     * 
      * @param userId El ID del usuario.
-     * @param catalogId El ID del ítem en su catálogo original (juego, serie, libro).
-     * @param type El tipo de medio ('game', 'show', 'book').
+     * @param item El objeto UniversalMediaItem completo (obtenido de la búsqueda).
      */
-    async trackItem(userId: string, catalogId: string, type: MediaType) {
-        // Determine which FK column to use based on type
-        const payload: any = {
-            user_id: userId,
-            status: 'pending',
-            progress: 0
-        };
-
-        if (type === 'game') payload.game_id = catalogId;
-        else if (type === 'show') payload.show_id = catalogId;
-        else if (type === 'book') payload.book_id = catalogId;
+    async trackItem(userId: string, item: UniversalMediaItem) {
+        const creator = item.metadata?.creator || null;
+        const total = item.metadata?.total_prog || 0; // Maps to time_to_beat / episodes / pages
 
         return await this.supabase.client
-            .from('user_media_items')
-            .insert(payload);
+            .rpc('track_new_item', {
+                p_user_id: userId,
+                p_type: item.type,
+                p_external_id: item.id, // e.g., 'game-123'
+                p_title: item.title,
+                p_cover_url: item.cover_url,
+                p_creator: creator,
+                p_total: total,
+                p_status: 'pending'
+            });
     }
 
     // Reuse logic or centralize this mapper if used in multiple places

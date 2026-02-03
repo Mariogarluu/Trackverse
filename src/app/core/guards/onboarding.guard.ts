@@ -45,7 +45,11 @@ export class AlreadyOnboardedGuard implements CanActivate {
 
     async canActivate(): Promise<boolean | UrlTree> {
         const { data: { user } } = await this.supabase.client.auth.getUser();
-        if (!user) return this.router.createUrlTree(['/login']);
+
+        // If not logged in, allow access to the route (e.g. Login page)
+        if (!user) {
+            return true;
+        }
 
         const { data: profile } = await this.supabase.client
             .from('profiles')
@@ -53,18 +57,12 @@ export class AlreadyOnboardedGuard implements CanActivate {
             .eq('id', user.id)
             .single();
 
+        // If logged in and onboarding completed -> Go Home
         if (profile && (profile as any).onboarding_completed) {
-            // Completed? Logic is inverted. 
-            // If completed, allowed to go anywhere? No, this guard is for the /onboarding route specifically?
-            // Wait, usually you want:
-            // - Main App Routes: Check if onboarding is done. (If NOT done -> redirect to onboarding)
-            // - Onboarding Route: Check if onboarding is done. (If DONE -> redirect to home)
-
-            // This Guard is for the MAIN APP routes.
-            return true;
+            return this.router.createUrlTree(['/home']);
         }
 
-        // Not completed? Redirect to onboarding
+        // If logged in but NOT completed -> Go Onboarding
         return this.router.createUrlTree(['/onboarding']);
     }
 }

@@ -10,10 +10,10 @@ import { MediaCardComponent } from '../../shared/components/media-card/media-car
 import { MediaDetailModalComponent } from '../../shared/components/media-detail-modal/media-detail-modal.component';
 
 @Component({
-    selector: 'app-onboarding',
-    standalone: true,
-    imports: [CommonModule, FormsModule, MediaCardComponent, MediaDetailModalComponent],
-    template: `
+  selector: 'app-onboarding',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MediaCardComponent, MediaDetailModalComponent],
+  template: `
     <div class="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 flex flex-col">
       
       <!-- Sticky Header / Progress -->
@@ -128,116 +128,116 @@ import { MediaDetailModalComponent } from '../../shared/components/media-detail-
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .animate-fade-in { animation: fadeIn 0.5s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class OnboardingComponent {
-    step = signal(1);
-    currentSlide = 0;
+  step = signal(1);
+  currentSlide = 0;
 
-    query = '';
-    results = signal<UniversalMediaItem[]>([]);
-    selectedItems = signal<Set<string>>(new Set());
-    loading = signal(false);
-    hasSearched = false;
-    finishing = signal(false);
+  query = '';
+  results = signal<UniversalMediaItem[]>([]);
+  selectedItems = signal<Set<string>>(new Set());
+  loading = signal(false);
+  hasSearched = false;
+  finishing = signal(false);
 
-    supabase = inject(SupabaseService);
-    mediaService = inject(MediaService);
-    toast = inject(ToastService);
-    router = inject(Router);
+  supabase = inject(SupabaseService);
+  mediaService = inject(MediaService);
+  toast = inject(ToastService);
+  router = inject(Router);
 
-    tourSlides = [
-        { icon: '🎮', title: 'Gestiona tu entretenimiento', desc: 'Juegos, Series y Libros. Todo tu progreso en un solo lugar.' },
-        { icon: '🎲', title: 'Descubre algo nuevo', desc: 'Utiliza el dado mágico para recibir recomendaciones basadas en lo que ya tienes.' },
-        { icon: '🤝', title: 'Comparte con amigos', desc: 'Mira lo que están jugando tus amigos y comparte tu perfil.' }
-    ];
+  tourSlides = [
+    { icon: '🎮', title: 'Gestiona tu entretenimiento', desc: 'Juegos, Series y Libros. Todo tu progreso en un solo lugar.' },
+    { icon: '🎲', title: 'Descubre algo nuevo', desc: 'Utiliza el dado mágico para recibir recomendaciones basadas en lo que ya tienes.' },
+    { icon: '🤝', title: 'Comparte con amigos', desc: 'Mira lo que están jugando tus amigos y comparte tu perfil.' }
+  ];
 
-    nextSlide() {
-        if (this.currentSlide < this.tourSlides.length - 1) {
-            this.currentSlide++;
-        } else {
-            this.step.set(2);
-        }
+  nextSlide() {
+    if (this.currentSlide < this.tourSlides.length - 1) {
+      this.currentSlide++;
+    } else {
+      this.step.set(2);
     }
+  }
 
-    skipTour() {
-        this.step.set(2);
+  skipTour() {
+    this.step.set(2);
+  }
+
+  /* Step 2 Logic */
+
+  async search() {
+    if (!this.query.trim()) return;
+    this.loading.set(true);
+    this.hasSearched = true;
+    try {
+      // Re-use the cloud function for search
+      const { data, error }: any = await this.supabase.client.functions.invoke('search-universal', {
+        body: { query: this.query }
+      });
+      if (error) throw error;
+      this.results.set(data || []);
+    } catch (e) {
+      console.error(e);
+      this.toast.error('Error al buscar.');
+    } finally {
+      this.loading.set(false);
     }
+  }
 
-    /* Step 2 Logic */
+  // Store full items keyed by ID
+  selectedObjects = new Map<string, UniversalMediaItem>();
 
-    async search() {
-        if (!this.query.trim()) return;
-        this.loading.set(true);
-        this.hasSearched = true;
-        try {
-            // Re-use the cloud function for search
-            const { data, error }: any = await this.supabase.client.functions.invoke('search-universal', {
-                body: { query: this.query }
-            });
-            if (error) throw error;
-            this.results.set(data || []);
-        } catch (e) {
-            console.error(e);
-            this.toast.error('Error al buscar.');
-        } finally {
-            this.loading.set(false);
-        }
+  isSelected(id: string): boolean {
+    return this.selectedObjects.has(id);
+  }
+
+  selectionCount() {
+    return this.selectedObjects.size;
+  }
+
+  toggleSelection(item: UniversalMediaItem) {
+    if (this.selectedObjects.has(item.id)) {
+      this.selectedObjects.delete(item.id);
+    } else {
+      this.selectedObjects.set(item.id, item);
     }
+    // Force signal update for UI if we used a signal for count (we currently call method in template, which works but signal is better)
+    // Let's just update a dummy signal to trigger change detection if needed or rely on template polling
+    this.selectedItems.set(new Set(this.selectedObjects.keys()));
+  }
 
-    // Store full items keyed by ID
-    selectedObjects = new Map<string, UniversalMediaItem>();
+  async finishOnboarding() {
+    if (this.selectedObjects.size < 3) return;
+    this.finishing.set(true);
 
-    isSelected(id: string): boolean {
-        return this.selectedObjects.has(id);
+    try {
+      const { data: { user } } = await this.supabase.client.auth.getUser();
+      if (!user) throw new Error('No User');
+
+      // 1. Track all items
+      const promises = Array.from(this.selectedObjects.values()).map(item =>
+        this.mediaService.trackItem(user.id, item)
+      );
+
+      await Promise.all(promises);
+
+      // 2. Mark onboarding as complete
+      await (this.supabase.client.from('profiles') as any)
+        .update({ onboarding_completed: true })
+        .eq('id', user.id);
+
+      this.toast.success('¡Bienvenido a TrackVerse!');
+      this.router.navigate(['/home']);
+
+    } catch (e) {
+      console.error(e);
+      this.toast.error('Algo salió mal. Inténtalo de nuevo.');
+    } finally {
+      this.finishing.set(false);
     }
-
-    selectionCount() {
-        return this.selectedObjects.size;
-    }
-
-    toggleSelection(item: UniversalMediaItem) {
-        if (this.selectedObjects.has(item.id)) {
-            this.selectedObjects.delete(item.id);
-        } else {
-            this.selectedObjects.set(item.id, item);
-        }
-        // Force signal update for UI if we used a signal for count (we currently call method in template, which works but signal is better)
-        // Let's just update a dummy signal to trigger change detection if needed or rely on template polling
-        this.selectedItems.set(new Set(this.selectedObjects.keys()));
-    }
-
-    async finishOnboarding() {
-        if (this.selectedObjects.size < 3) return;
-        this.finishing.set(true);
-
-        try {
-            const { data: { user } } = await this.supabase.client.auth.getUser();
-            if (!user) throw new Error('No User');
-
-            // 1. Track all items
-            const promises = Array.from(this.selectedObjects.values()).map(item =>
-                this.mediaService.trackItem(user.id, item.id, item.type)
-            );
-
-            await Promise.all(promises);
-
-            // 2. Mark onboarding as complete
-            await (this.supabase.client.from('profiles') as any)
-                .update({ onboarding_completed: true })
-                .eq('id', user.id);
-
-            this.toast.success('¡Bienvenido a TrackVerse!');
-            this.router.navigate(['/home']);
-
-        } catch (e) {
-            console.error(e);
-            this.toast.error('Algo salió mal. Inténtalo de nuevo.');
-        } finally {
-            this.finishing.set(false);
-        }
-    }
+  }
 }

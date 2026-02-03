@@ -2,9 +2,7 @@ import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../models/supabase';
 
-// Replace with actual environment variables in production
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+import { environment } from '../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
@@ -18,7 +16,10 @@ export class SupabaseService {
     private supabase: SupabaseClient<Database>;
 
     constructor() {
-        this.supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY);
+        this.supabase = createClient<Database>(
+            environment.supabase.url,
+            environment.supabase.key
+        );
     }
 
     get client() {
