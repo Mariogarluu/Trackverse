@@ -178,5 +178,20 @@ export interface Database {
                 }
             }
         }
+        Functions: {
+            track_new_item: {
+                Args: {
+                    p_user_id: string
+                    p_type: string
+                    p_external_id: string
+                    p_title: string
+                    p_cover_url: string | null
+                    p_creator: string | null
+                    p_total: number
+                    p_status: string
+                }
+                Returns: Json
+            }
+        }
     }
 }
