@@ -122,3 +122,24 @@ WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own tracked items" 
 ON user_media_items FOR UPDATE 
 USING (auth.uid() = user_id);
+
+-- 6. TRIGGERS
+-- Function to handle new user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, username, avatar_url, bio)
+  VALUES (
+    new.id, 
+    COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', 'Viajero'),
+    new.raw_user_meta_data->>'avatar_url',
+    'Explorador del Trackverse'
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger the function every time a user is created
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();

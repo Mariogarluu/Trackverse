@@ -21,7 +21,7 @@ export class OnboardingGuard implements CanActivate {
             .from('profiles')
             .select('onboarding_completed')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profile && !(profile as any).onboarding_completed) {
             // Must do onboarding
@@ -55,7 +55,7 @@ export class AlreadyOnboardedGuard implements CanActivate {
             .from('profiles')
             .select('onboarding_completed')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         // If logged in and onboarding completed -> Go Home
         if (profile && (profile as any).onboarding_completed) {
