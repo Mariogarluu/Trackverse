@@ -79,7 +79,7 @@ export class MediaService {
         const creator = item.metadata?.creator || null;
         const total = item.metadata?.total_prog || 0; // Maps to time_to_beat / episodes / pages
 
-        return await this.supabase.client
+        const { data, error } = await this.supabase.client
             .rpc('track_new_item', {
                 p_user_id: userId,
                 p_type: item.type,
@@ -90,6 +90,95 @@ export class MediaService {
                 p_total: total,
                 p_status: 'pending'
             } as any);
+
+        if (error) {
+            console.warn('RPC track_new_item failed (likely missing). Falling back to client-side logic.', error);
+            // Fallback: Client-side logic
+            return this.trackItemClientSide(userId, item, creator, total);
+        }
+
+        return { data, error };
+    }
+
+    /**
+     * Fallback logic to track items if the RPC is missing.
+     * Performs the Check -> Insert Catalog -> Insert Tracking flow manually.
+     */
+    async trackItemClientSide(userId: string, item: UniversalMediaItem, creator: string | null, total: number) {
+        // 1. Determine Table and Fields
+        let catalogTable = '';
+        let foreignKey = '';
+        let payload: any = {
+            title: item.title,
+            cover_url: item.cover_url,
+            external_id: item.id
+        };
+
+        if (item.type === 'game') {
+            catalogTable = 'catalog_games';
+            foreignKey = 'game_id';
+            payload.developer = creator;
+            payload.time_to_beat = total;
+        } else if (item.type === 'show') {
+            catalogTable = 'catalog_shows';
+            foreignKey = 'show_id';
+            payload.total_episodes = total;
+            payload.network = creator;
+        } else if (item.type === 'book') {
+            catalogTable = 'catalog_books';
+            foreignKey = 'book_id';
+            payload.author = creator;
+            payload.total_pages = total;
+        } else {
+            throw new Error('Invalid Type');
+        }
+
+        // 2. Check Catalog
+        const { data: existing, error: findError } = await this.supabase.client
+            .from(catalogTable)
+            .select('id')
+            .eq('external_id', item.id)
+            .maybeSingle();
+
+        let catalogId;
+
+        if (existing) {
+            catalogId = (existing as any).id;
+        } else {
+            // 3. Insert into Catalog
+            const { data: created, error: createError } = await (this.supabase.client
+                .from(catalogTable) as any)
+                .insert(payload)
+                .select('id')
+                .single();
+
+            if (createError) {
+                // Optimization: Concurrency might cause duplicate key error if another user inserted it just now.
+                // Retry fetch
+                const { data: retry } = await this.supabase.client
+                    .from(catalogTable)
+                    .select('id')
+                    .eq('external_id', item.id)
+                    .maybeSingle();
+
+                if (retry) catalogId = (retry as any).id;
+                else throw createError; // Real error
+            } else {
+                catalogId = created.id;
+            }
+        }
+
+        // 4. Insert Tracking
+        const trackingPayload = {
+            user_id: userId,
+            status: 'pending',
+            [foreignKey]: catalogId
+        };
+
+        return await (this.supabase.client
+            .from('user_media_items') as any)
+            .insert(trackingPayload)
+            .select();
     }
 
     // Reuse logic or centralize this mapper if used in multiple places

@@ -80,7 +80,7 @@ export class ProfileComponent implements OnInit {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profile) {
       this.profile.set(profile);

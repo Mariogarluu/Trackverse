@@ -23,13 +23,13 @@ export class OnboardingGuard implements CanActivate {
             .eq('id', user.id)
             .maybeSingle();
 
-        if (profile && !(profile as any).onboarding_completed) {
-            // Must do onboarding
+        if (profile && (profile as any).onboarding_completed) {
+            // Completed, allow access
             return true;
         }
 
-        // Already completed, go home
-        return this.router.createUrlTree(['/home']);
+        // Not completed, redirect to onboarding
+        return this.router.createUrlTree(['/onboarding']);
     }
 }
 

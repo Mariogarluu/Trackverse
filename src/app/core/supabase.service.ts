@@ -59,6 +59,20 @@ export class SupabaseService {
         return this.supabase.auth.signInWithOAuth({ provider: 'google' });
     }
 
+    async signInWithPassword(email: string, password: string) {
+        return this.supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+    }
+
+    async signUp(email: string, password: string) {
+        return this.supabase.auth.signUp({
+            email,
+            password
+        });
+    }
+
     async signOut() {
         return this.supabase.auth.signOut();
     }
