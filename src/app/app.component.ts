@@ -11,15 +11,8 @@ import { SupabaseService } from './core/supabase.service';
   template: `
     <app-toast-container></app-toast-container>
     
-    <!-- Only show the navigation if the user is authenticated (we checking if profile is loaded or at least not in login page) 
-         But since app-root is global, we can just hide the sidebar if we are on login/onboarding.
-         A better way is to check if session exists. For simplicity, we just show it if we have a user.
-    -->
-    <div class="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-sans selection:bg-primary selection:text-white pb-20">
-      
-      <!-- Main Content Area -->
-      <router-outlet></router-outlet>
-
+    <div *ngIf="isInitialized()" class="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-sans selection:bg-primary selection:text-white pb-20">
+      <!-- Main Content Area (Router is placed below with proper margins) -->
       <!-- Bottom Navigation (Fixed) - Only show if user is logged in -->
       <nav *ngIf="user()" class="fixed bottom-0 left-0 w-full bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-50 px-6 py-4 flex justify-between items-center sm:hidden">
         
@@ -138,9 +131,16 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
 
   user = signal<any>(null);
+  isInitialized = signal<boolean>(false);
 
-  ngOnInit() {
-    this.checkSession();
+  async ngOnInit() {
+    try {
+      await this.checkSession();
+    } catch (e) {
+      console.error('Fast boot session check failed:', e);
+    } finally {
+      this.isInitialized.set(true);
+    }
 
     // Escuchar el estado de autenticación de Supabase a nivel root
     this.supabase.client.auth.onAuthStateChange(async (event, session) => {
@@ -156,27 +156,35 @@ export class AppComponent implements OnInit {
   }
 
   async checkSession() {
-    const { data: { session } } = await this.supabase.client.auth.getSession();
-    if (session?.user) {
-      this.loadProfile(session.user.id);
-    } else {
-      // In case we are using mock login or there's some issue
-      // We will fallback but standard logic works with Supabase tokens.
+    try {
+      const { data: { session }, error } = await this.supabase.client.auth.getSession();
+      if (error) throw error;
+
+      if (session?.user) {
+        await this.loadProfile(session.user.id);
+      }
+    } catch (e) {
+      console.error('checkSession Error:', e);
     }
   }
 
   async loadProfile(userId: string) {
-    const { data, error } = await this.supabase.client
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data, error } = await this.supabase.client
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (!error && data) {
-      this.user.set(data);
-    } else {
-      // If there's an error loading profile but we have a user ID (maybe profile wasn't created yet)
-      // fallback to basic user representation so the menu shows up at least
+      if (!error && data) {
+        this.user.set(data);
+      } else {
+        // If there's an error loading profile but we have a user ID (maybe profile wasn't created yet)
+        console.warn('Profile not found, falling back to id representation.', error);
+        this.user.set({ id: userId, username: 'Usuario' });
+      }
+    } catch (e) {
+      console.error('loadProfile critical error:', e);
       this.user.set({ id: userId, username: 'Usuario' });
     }
   }
