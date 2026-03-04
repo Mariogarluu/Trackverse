@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UniversalMediaItem } from '../../../models/media';
 
@@ -12,7 +12,7 @@ import { UniversalMediaItem } from '../../../models/media';
       <!-- Cover Image -->
       <div class="relative aspect-[2/3] w-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
         <img 
-          [src]="item.cover_url || 'assets/placeholder-portrait.jpg'" 
+          [src]="item.cover_url || 'assets/placeholder-portrait.svg'" 
           [alt]="item.title"
           class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         >
@@ -51,19 +51,13 @@ import { UniversalMediaItem } from '../../../models/media';
       </div>
 
       <!-- Hover Overlay Actions -->
-      <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 backdrop-blur-[1px]">
-        <button (click)="action.emit('update')" class="p-2 bg-white text-slate-900 rounded-full hover:bg-primary hover:text-white transition-colors">
-          <span class="sr-only">Update</span>
-          ✏️
-        </button>
-      </div>
+
 
     </div>
   `
 })
 export class MediaCardComponent {
   @Input({ required: true }) item!: UniversalMediaItem;
-  @Output() action = new EventEmitter<string>();
 
   get CompletedPercentage(): number {
     if (!this.item.tracking || !this.item.metadata.total_prog) return 0;
@@ -77,7 +71,12 @@ export class MediaCardComponent {
 
     if (!total) return `${current}`;
 
-    if (this.item.type === 'show') return `Ep ${current}`;
-    return `${Math.round(this.CompletedPercentage)}%`;
+    switch (this.item.type) {
+      case 'show': return `${current} / ${total} eps`;
+      case 'book': return `${current} / ${total} pgs`;
+      case 'movie': return `${current} / ${total} min`;
+      case 'game': return `${Math.round(this.CompletedPercentage)}%`;
+      default: return `${Math.round(this.CompletedPercentage)}%`;
+    }
   }
 }

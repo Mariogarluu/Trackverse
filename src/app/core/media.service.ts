@@ -65,6 +65,17 @@ export class MediaService {
     }
 
     /**
+     * Elimina un ítem de la biblioteca del usuario.
+     * Borra la fila de `user_media_items` por su ID.
+     */
+    async deleteTracking(itemId: string) {
+        return await (this.supabase.client
+            .from('user_media_items') as any)
+            .delete()
+            .eq('id', itemId);
+    }
+
+    /**
      * Añade un nuevo ítem al seguimiento del usuario.
      * 
      * Utiliza una función RPC ('track_new_item') para:
@@ -95,6 +106,11 @@ export class MediaService {
             console.warn('RPC track_new_item failed (likely missing). Falling back to client-side logic.', error);
             // Fallback: Client-side logic
             return this.trackItemClientSide(userId, item, creator, total);
+        }
+
+        if (item.type === 'show') {
+            // Trigger background sync for shows if needed
+            // For now, reliance on RPC is sufficient for basic tracking
         }
 
         return { data, error };
@@ -129,6 +145,11 @@ export class MediaService {
             foreignKey = 'book_id';
             payload.author = creator;
             payload.total_pages = total;
+        } else if (item.type === 'movie') {
+            catalogTable = 'catalog_movies';
+            foreignKey = 'movie_id';
+            // payload.release_date is handled if data exists, but minimal payload:
+            payload.runtime = total;
         } else {
             throw new Error('Invalid Type');
         }
@@ -188,30 +209,43 @@ export class MediaService {
         let cover = '';
         let metadata: any = {};
         let total = 0;
+        let externalId: string | undefined;
 
         if (dbItem.game) {
             type = 'game';
             title = dbItem.game.title;
             cover = dbItem.game.cover_url;
             total = dbItem.game.time_to_beat || 0;
+            externalId = dbItem.game.external_id;
             metadata = { creator: dbItem.game.developer, extra_info: dbItem.game.platforms?.join(', '), total_prog: total };
         } else if (dbItem.show) {
             type = 'show';
             title = dbItem.show.title;
             cover = dbItem.show.cover_url;
+            externalId = dbItem.show.external_id;
             // For shows, progress might be episodes
             total = dbItem.show.total_episodes || 0;
-            metadata = { creator: dbItem.show.network, extra_info: `${dbItem.show.total_seasons} Seasons`, total_prog: total };
+            const seasons = dbItem.show.total_seasons;
+            metadata = { creator: dbItem.show.network, extra_info: seasons ? `${seasons} Seasons` : 'Seasons N/A', total_prog: total };
         } else if (dbItem.book) {
             type = 'book';
             title = dbItem.book.title;
             cover = dbItem.book.cover_url;
             total = dbItem.book.total_pages || 0;
+            externalId = dbItem.book.external_id;
             metadata = { creator: dbItem.book.author, extra_info: dbItem.book.type, total_prog: total };
+        } else if (dbItem.movie) {
+            type = 'movie';
+            title = dbItem.movie.title;
+            cover = dbItem.movie.poster_path; // or cover_url if strict
+            total = dbItem.movie.runtime || 0;
+            externalId = dbItem.movie.external_id;
+            metadata = { creator: 'Movie', extra_info: dbItem.movie.release_date ? dbItem.movie.release_date.split('-')[0] : 'N/A', total_prog: total };
         }
 
         return {
             id: dbItem.id,
+            external_id: externalId,
             type,
             title,
             cover_url: cover,

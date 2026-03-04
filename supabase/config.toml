@@ -1,0 +1,6 @@
+[functions.search-universal]
+verify_jwt = false
+
+[functions.media-details]
+verify_jwt = false
+

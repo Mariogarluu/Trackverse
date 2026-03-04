@@ -19,7 +19,7 @@ import { MediaDetailModalComponent } from '../../shared/components/media-detail-
       <!-- Sticky Header / Progress -->
       <div class="p-6 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
          <div class="flex items-center gap-2">
-           <img src="/Tackverse_logo_completo.png" class="h-8">
+           <img src="/Tackverse_logo_completo.png" class="h-8" width="120" height="32" loading="eager">
          </div>
          <div class="flex gap-2">
             <span class="w-3 h-3 rounded-full transition-colors" [ngClass]="step() === 1 ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'"></span>

@@ -1,8 +1,4 @@
-
--- 1. Drop the function to ensure clean state
-DROP FUNCTION IF EXISTS public.track_new_item;
-
--- 2. Re-create the function
+-- 1. Fix Duplication Issue in RPC
 CREATE OR REPLACE FUNCTION public.track_new_item(
   p_user_id UUID,
   p_type TEXT,
@@ -29,9 +25,15 @@ BEGIN
       VALUES (p_title, p_cover_url, p_creator, p_total, p_external_id)
       RETURNING id INTO v_catalog_id;
     END IF;
-    INSERT INTO user_media_items (user_id, game_id, status)
-    VALUES (p_user_id, v_catalog_id, p_status)
-    RETURNING id INTO v_new_tracking_id;
+
+    -- Check overlap
+    SELECT id INTO v_new_tracking_id FROM user_media_items WHERE user_id = p_user_id AND game_id = v_catalog_id LIMIT 1;
+    
+    IF v_new_tracking_id IS NULL THEN
+        INSERT INTO user_media_items (user_id, game_id, status)
+        VALUES (p_user_id, v_catalog_id, p_status)
+        RETURNING id INTO v_new_tracking_id;
+    END IF;
 
   -- Handle SHOWS
   ELSIF p_type = 'show' THEN
@@ -41,9 +43,15 @@ BEGIN
       VALUES (p_title, p_cover_url, p_creator, p_total, p_external_id)
       RETURNING id INTO v_catalog_id;
     END IF;
-    INSERT INTO user_media_items (user_id, show_id, status)
-    VALUES (p_user_id, v_catalog_id, p_status)
-    RETURNING id INTO v_new_tracking_id;
+
+    -- Check overlap
+    SELECT id INTO v_new_tracking_id FROM user_media_items WHERE user_id = p_user_id AND show_id = v_catalog_id LIMIT 1;
+
+    IF v_new_tracking_id IS NULL THEN
+        INSERT INTO user_media_items (user_id, show_id, status)
+        VALUES (p_user_id, v_catalog_id, p_status)
+        RETURNING id INTO v_new_tracking_id;
+    END IF;
 
   -- Handle BOOKS
   ELSIF p_type = 'book' THEN
@@ -53,9 +61,15 @@ BEGIN
       VALUES (p_title, p_cover_url, p_creator, p_total, p_external_id)
       RETURNING id INTO v_catalog_id;
     END IF;
-    INSERT INTO user_media_items (user_id, book_id, status)
-    VALUES (p_user_id, v_catalog_id, p_status)
-    RETURNING id INTO v_new_tracking_id;
+
+    -- Check overlap
+    SELECT id INTO v_new_tracking_id FROM user_media_items WHERE user_id = p_user_id AND book_id = v_catalog_id LIMIT 1;
+
+    IF v_new_tracking_id IS NULL THEN
+        INSERT INTO user_media_items (user_id, book_id, status)
+        VALUES (p_user_id, v_catalog_id, p_status)
+        RETURNING id INTO v_new_tracking_id;
+    END IF;
 
   ELSE
     RAISE EXCEPTION 'Invalid media type: %', p_type;
@@ -65,8 +79,10 @@ BEGIN
 END;
 $$;
 
--- 3. Grant Explicit Permissions
-GRANT EXECUTE ON FUNCTION public.track_new_item TO postgres, anon, authenticated, service_role;
 
--- 4. Force Schema Cache Reload (Important for API to see new function immediately)
-NOTIFY pgrst, 'reload config';
+-- 2. Allow Deletion (Missing Policy)
+DROP POLICY IF EXISTS "Users can delete their own tracked items" ON user_media_items;
+
+CREATE POLICY "Users can delete their own tracked items" 
+ON user_media_items FOR DELETE 
+USING (auth.uid() = user_id);

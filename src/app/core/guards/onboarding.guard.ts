@@ -6,30 +6,12 @@ import { SupabaseService } from '../supabase.service';
     providedIn: 'root'
 })
 export class OnboardingGuard implements CanActivate {
-    private router = inject(Router);
-    private supabase = inject(SupabaseService);
-
+    /**
+     * Onboarding desactivado temporalmente:
+     * siempre permite el acceso a las rutas protegidas.
+     */
     async canActivate(): Promise<boolean | UrlTree> {
-        const { data: { user } } = await this.supabase.client.auth.getUser();
-
-        if (!user) {
-            return this.router.createUrlTree(['/login']);
-        }
-
-        // Check profile
-        const { data: profile } = await this.supabase.client
-            .from('profiles')
-            .select('onboarding_completed')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        if (profile && (profile as any).onboarding_completed) {
-            // Completed, allow access
-            return true;
-        }
-
-        // Not completed, redirect to onboarding
-        return this.router.createUrlTree(['/onboarding']);
+        return true;
     }
 }
 
@@ -40,29 +22,11 @@ export class OnboardingGuard implements CanActivate {
     providedIn: 'root'
 })
 export class AlreadyOnboardedGuard implements CanActivate {
-    private router = inject(Router);
-    private supabase = inject(SupabaseService);
-
+    /**
+     * Onboarding desactivado:
+     * se permite siempre entrar a /login sin redirecciones.
+     */
     async canActivate(): Promise<boolean | UrlTree> {
-        const { data: { user } } = await this.supabase.client.auth.getUser();
-
-        // If not logged in, allow access to the route (e.g. Login page)
-        if (!user) {
-            return true;
-        }
-
-        const { data: profile } = await this.supabase.client
-            .from('profiles')
-            .select('onboarding_completed')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        // If logged in and onboarding completed -> Go Home
-        if (profile && (profile as any).onboarding_completed) {
-            return this.router.createUrlTree(['/home']);
-        }
-
-        // If logged in but NOT completed -> Go Onboarding
-        return this.router.createUrlTree(['/onboarding']);
+        return true;
     }
 }

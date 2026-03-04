@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { Database } from '../models/supabase';
 
 import { environment } from '../../environments/environment';
@@ -18,8 +18,30 @@ export class SupabaseService {
     constructor() {
         this.supabase = createClient<Database>(
             environment.supabase.url,
-            environment.supabase.key
+            environment.supabase.key,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+                    // Usar PKCE flow para mejor seguridad y evitar conflictos de locks
+                    flowType: 'pkce'
+                },
+                global: {
+                    headers: {
+                        'x-client-info': 'trackverse-web'
+                    }
+                }
+            }
         );
+
+        // Escucha cambios en la autenticación, útil especialmente para OAuth redirect
+        this.supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                await this.checkAndCreateProfile(session.user);
+            }
+        });
     }
 
     get client(): SupabaseClient<Database> {
@@ -46,13 +68,48 @@ export class SupabaseService {
         *,
         game:catalog_games(*),
         show:catalog_shows(*),
-        book:catalog_books(*)
+        book:catalog_books(*),
+        movie:catalog_movies(*)
       `)
             .eq('user_id', userId);
     }
 
     async signInWithEmail(email: string) {
         return this.supabase.auth.signInWithOtp({ email });
+    }
+
+    /**
+     * Verifica el código OTP enviado al correo del usuario.
+     */
+    async verifyOtp(email: string, token: string, type: 'email' | 'signup' | 'recovery' | 'magiclink' = 'email') {
+        return this.supabase.auth.verifyOtp({ email, token, type });
+    }
+
+    /**
+     * Verifica si el usuario tiene un perfil asociado, y si no existe lo crea.
+     */
+    async checkAndCreateProfile(user: User) {
+        if (!user) return;
+
+        try {
+            // Verificar si el perfil existe
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', user.id)
+                .single();
+
+            // Si no existe, creamos uno básico
+            if (!data) {
+                const username = user.email ? user.email.split('@')[0] : `user_${Math.floor(Math.random() * 10000)}`;
+                await (this.supabase.from('profiles') as any).insert({
+                    id: user.id,
+                    username: username
+                });
+            }
+        } catch (e) {
+            console.error('Error checking/creating profile:', e);
+        }
     }
 
     async signInWithGoogle() {

@@ -2,16 +2,24 @@ import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MediaService } from '../../core/media.service';
 import { UniversalMediaItem, MediaType } from '../../models/media';
+import { ToastService } from '../../core/toast.service';
 import { MediaCardComponent } from '../../shared/components/media-card/media-card.component';
+import { MediaDetailModalComponent } from '../../shared/components/media-detail-modal/media-detail-modal.component';
 import { SupabaseService } from '../../core/supabase.service';
 
 @Component({
   selector: 'app-library',
   standalone: true,
-  imports: [CommonModule, MediaCardComponent],
+  imports: [CommonModule, MediaCardComponent, MediaDetailModalComponent],
   template: `
     <div class="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 p-6">
       
+      <app-media-detail-modal 
+        [item]="selectedItem()" 
+        (close)="selectedItem.set(null)"
+        (statusUpdated)="loadLibrary()"
+      ></app-media-detail-modal>
+
       <header class="mb-8">
         <h1 class="text-3xl font-light tracking-wide mb-6">Biblioteca</h1>
         
@@ -35,6 +43,7 @@ import { SupabaseService } from '../../core/supabase.service';
           <app-media-card 
             *ngFor="let item of filteredItems()" 
             [item]="item"
+            (click)="onItemClick(item)"
           ></app-media-card>
           
           <!-- Empty State -->
@@ -57,6 +66,7 @@ import { SupabaseService } from '../../core/supabase.service';
 export class LibraryComponent implements OnInit {
   mediaService = inject(MediaService);
   supabase = inject(SupabaseService);
+  toast = inject(ToastService);
 
   types: { id: MediaType | 'all', label: string }[] = [
     { id: 'all', label: 'Todo' },
@@ -68,6 +78,7 @@ export class LibraryComponent implements OnInit {
   activeType = signal<MediaType | 'all'>('all');
   items = signal<UniversalMediaItem[]>([]);
   loading = signal(true);
+  selectedItem = signal<UniversalMediaItem | null>(null);
 
   filteredItems = computed(() => {
     const type = this.activeType();
@@ -92,6 +103,11 @@ export class LibraryComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+
+  onItemClick(item: UniversalMediaItem) {
+    this.selectedItem.set(item);
   }
 }
 

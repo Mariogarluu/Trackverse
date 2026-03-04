@@ -5,12 +5,13 @@ export type Game = Database['public']['Tables']['catalog_games']['Row'];
 export type Show = Database['public']['Tables']['catalog_shows']['Row'];
 export type Book = Database['public']['Tables']['catalog_books']['Row'];
 
-export type MediaType = 'game' | 'show' | 'book';
+export type MediaType = 'game' | 'show' | 'book' | 'movie';
 export type MediaStatus = 'pending' | 'watching' | 'completed' | 'dropped';
 
 // Combined interface for UI/Search logic
 export interface UniversalMediaItem {
     id: string;
+    external_id?: string;
     type: MediaType;
     title: string;
     cover_url: string | null;
@@ -18,6 +19,7 @@ export interface UniversalMediaItem {
         creator?: string | null; // developer/author/network
         total_prog?: number | null; // time_to_beat/episodes/pages
         extra_info?: string | null; // platform/is_anime/type
+        rating?: number | null;
     };
     description?: string | null;
     // User context (if tracked)

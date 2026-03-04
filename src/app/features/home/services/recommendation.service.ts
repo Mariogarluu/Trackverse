@@ -96,26 +96,31 @@ export class RecommendationService {
         let title = '';
         let cover = '';
         let metadata: any = {};
+        let externalId: string | undefined;
 
         if (dbItem.game) {
             type = 'game';
             title = dbItem.game.title;
             cover = dbItem.game.cover_url;
+            externalId = dbItem.game.external_id;
             metadata = { creator: dbItem.game.developer, extra_info: dbItem.game.platforms?.join(', ') };
         } else if (dbItem.show) {
             type = 'show';
             title = dbItem.show.title;
             cover = dbItem.show.cover_url;
+            externalId = dbItem.show.external_id;
             metadata = { creator: dbItem.show.network, extra_info: `${dbItem.show.total_seasons} Seasons` };
         } else if (dbItem.book) {
             type = 'book';
             title = dbItem.book.title;
             cover = dbItem.book.cover_url;
+            externalId = dbItem.book.external_id;
             metadata = { creator: dbItem.book.author, extra_info: dbItem.book.type };
         }
 
         return {
             id: dbItem.id, // user_media_item id
+            external_id: externalId,
             type,
             title,
             cover_url: cover,

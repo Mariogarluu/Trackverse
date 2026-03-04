@@ -53,7 +53,7 @@ import { ToastService } from '../../core/toast.service';
           *ngFor="let item of results()" 
           [item]="item"
           (click)="onItemClick(item)"
-          (action)="onAction($event, item)"
+          (click)="onItemClick(item)"
         ></app-media-card>
       </div>
 
@@ -116,23 +116,5 @@ export class SearchComponent {
     this.search(); // Refresh search results to show new status
   }
 
-  async onAction(type: string, item: UniversalMediaItem) {
-    if (type === 'update') {
-      const { data } = await this.supabase.client.auth.getSession();
-      const session = data.session;
 
-      if (!session?.user) {
-        this.toast.info('Por favor inicia sesión para guardar.');
-        return;
-      }
-
-      // Quick add to library for demo
-      this.mediaService.trackItem(session.user.id, item)
-        .then(() => this.toast.success(`Se añadió ${item.title} a tu biblioteca!`))
-        .catch(e => {
-          console.error(e);
-          this.toast.error('Error al añadir item.');
-        });
-    }
-  }
 }
