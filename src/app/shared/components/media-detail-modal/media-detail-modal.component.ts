@@ -100,7 +100,7 @@ import { SupabaseService } from '../../../core/supabase.service';
                   <!-- Season actions -->
                   <div *ngIf="s.expanded && s.episodes?.length > 0" class="flex items-center justify-between px-3 py-1 text-[11px] bg-slate-100 dark:bg-slate-900/60">
                     <span class="text-slate-500">
-                      {{ (s.episodes | async)?.length || s.episodes.length }} episodios
+                      {{ s.episodes.length }} episodios
                     </span>
                     <button 
                       *ngIf="item?.tracking"
