@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Trackverse</title>
+    <style>
+        body {
+            font-family: 'Inter', 'Roboto', sans-serif;
+            background-color: #F8FAFC;
+            margin: 0;
+            padding: 0;
+            color: #1E293B;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #FFFFFF;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #E2E8F0;
+        }
+
+        .header {
+            background-color: #0F172A;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #FFFFFF;
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .content {
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #475569;
+            margin-bottom: 24px;
+        }
+
+        .code-box {
+            background-color: #F1F5F9;
+            border: 2px dashed #26C6DA;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px auto;
+            max-width: 250px;
+        }
+
+        .code {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #0F172A;
+            margin: 0;
+        }
+
+        .footer {
+            background-color: #F8FAFC;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #94A3B8;
+            border-top: 1px solid #E2E8F0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TRACKVERSE</h1>
+        </div>
+        <div class="content">
+            <h2 style="color: #0F172A; margin-top: 0;">¡Hola!</h2>
+            <p>Has solicitado iniciar sesión en tu cuenta de Trackverse. Utiliza el siguiente código de verificación de
+                6 dígitos para acceder a tu universo de entretenimiento social:</p>
+
+            <div class="code-box">
+                <p class="code">{{ .Token }}</p>
+            </div>
+
+            <p style="font-size: 14px; margin-top: 30px;">Si no has solicitado este código, puedes ignorar este correo
+                de forma segura.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Trackverse. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</body>
+
+</html>

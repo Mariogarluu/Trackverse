@@ -79,7 +79,7 @@ import { SupabaseService } from '../../../core/supabase.service';
               <p class="text-xs text-slate-500 mb-3">
                 {{ details.number_of_seasons || '?' }} temporadas · {{ details.number_of_episodes || '?' }} episodios
               </p>
-              <div class="max-h-40 overflow-y-auto space-y-2 pr-1">
+              <div class="max-h-60 overflow-y-auto space-y-2 pr-1">
                 <div 
                   *ngFor="let s of details.seasons" 
                   class="flex flex-col bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden">
@@ -97,10 +97,31 @@ import { SupabaseService } from '../../../core/supabase.service';
                     </div>
                   </div>
 
+                  <!-- Season actions -->
+                  <div *ngIf="s.expanded && s.episodes?.length > 0" class="flex items-center justify-between px-3 py-1 text-[11px] bg-slate-100 dark:bg-slate-900/60">
+                    <span class="text-slate-500">
+                      {{ (s.episodes | async)?.length || s.episodes.length }} episodios
+                    </span>
+                    <button 
+                      *ngIf="item?.tracking"
+                      (click)="markSeasonWatched(s, $event)"
+                      class="px-2 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-semibold">
+                      Marcar temporada vista
+                    </button>
+                  </div>
+
                   <!-- Episodes List (if available and expanded) -->
                   <div *ngIf="s.expanded && s.episodes?.length > 0" class="border-t border-slate-200 dark:border-slate-700">
                     <div *ngFor="let ep of s.episodes" 
                          class="flex items-center gap-3 px-3 py-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+
+                      <!-- Episode thumbnail -->
+                      <img
+                        *ngIf="item"
+                        [src]="ep.thumbnail || item.cover_url || 'assets/placeholder-portrait.svg'"
+                        [alt]="ep.title"
+                        class="w-10 h-10 rounded object-cover flex-shrink-0"
+                      >
                       
                       <!-- Checkbox (only if tracked) -->
                       <input 
@@ -343,7 +364,7 @@ export class MediaDetailModalComponent {
          const showId = trackData.show_id;
          const showMeta = trackData.show as any;
 
-         const { data: seasons } = await (this.supabase.client
+         let { data: seasons } = await (this.supabase.client
             .from('catalog_seasons') as any)
             .select(`
                    *,
@@ -354,6 +375,34 @@ export class MediaDetailModalComponent {
                `)
             .eq('show_id', showId)
             .order('season_number');
+
+         // Si aún no hay temporadas en BBDD, sincronizamos contra TMDB y reintentamos
+         if (!seasons || seasons.length === 0) {
+            try {
+               await this.supabase.client.functions.invoke('sync-show-details', {
+                  body: {
+                     show_id: showId,
+                     external_id: this.item?.external_id || this.item?.id
+                  }
+               });
+
+               const retry = await (this.supabase.client
+                  .from('catalog_seasons') as any)
+                  .select(`
+                         *,
+                         episodes:catalog_episodes(
+                             *,
+                             user_episodes(watched, id)
+                         )
+                     `)
+                  .eq('show_id', showId)
+                  .order('season_number');
+
+               seasons = retry.data;
+            } catch (e) {
+               console.error('Error sincronizando temporadas', e);
+            }
+         }
 
          if (!seasons || seasons.length === 0) return null;
 
@@ -368,12 +417,16 @@ export class MediaDetailModalComponent {
                expanded: false,
                episodes: (s.episodes || []).map((e: any) => {
                   const userEp = e.user_episodes?.[0];
+                  const thumbnail = e.still_path
+                     ? `https://image.tmdb.org/t/p/w185${e.still_path}`
+                     : (this.item?.cover_url || null);
                   return {
                      id: e.id,
                      episode_number: e.episode_number,
                      title: e.title,
                      watched: !!userEp?.watched,
-                     user_episode_id: userEp?.id
+                     user_episode_id: userEp?.id,
+                     thumbnail
                   };
                }).sort((a: any, b: any) => a.episode_number - b.episode_number)
             }))
@@ -460,6 +513,58 @@ export class MediaDetailModalComponent {
       this.updateProgress();
    }
 
+   async markSeasonWatched(season: any, event?: MouseEvent) {
+      if (event) {
+         event.stopPropagation();
+      }
+      if (!this.item?.tracking || !season?.episodes?.length) return;
+
+      const { data: { session } } = await this.supabase.client.auth.getSession();
+      if (!session?.user) {
+         this.toast.info('Por favor inicia sesión para guardar.');
+         return;
+      }
+
+      const showId = await this.getShowId();
+      if (!showId) return;
+
+      const nowIso = new Date().toISOString();
+      const rows = season.episodes.map((ep: any) => ({
+         user_id: session.user.id,
+         show_id: showId,
+         season_id: season.id,
+         episode_id: ep.id,
+         watched: true,
+         watched_at: nowIso
+      }));
+
+      const { data, error } = await (this.supabase.client
+         .from('user_episodes') as any)
+         .upsert(rows, { onConflict: 'user_id, episode_id' })
+         .select('id, episode_id');
+
+      if (error) {
+         console.error('Error al marcar temporada', error);
+         this.toast.error('Error al marcar temporada como vista');
+         return;
+      }
+
+      const map = new Map<string, string>();
+      (data || []).forEach((row: any) => {
+         map.set(row.episode_id, row.id);
+      });
+
+      season.episodes.forEach((ep: any) => {
+         ep.watched = true;
+         const ueId = map.get(ep.id);
+         if (ueId) {
+            ep.user_episode_id = ueId;
+         }
+      });
+
+      this.updateProgress();
+   }
+
    private async getShowId(): Promise<string | null> {
       if (this.item?.tracking) {
          const { data } = await (this.supabase.client
@@ -473,16 +578,25 @@ export class MediaDetailModalComponent {
    }
 
    private async updateProgress() {
-      let watchedCount = 0;
-      this.details?.seasons?.forEach((s: any) => {
-         s.episodes?.forEach((e: any) => {
-            if (e.watched) watchedCount++;
-         });
-      });
+      if (!this.item?.tracking) return;
 
-      if (this.item?.tracking) {
-         this.mediaService.updateTracking(this.item.tracking.id, { progress: watchedCount });
-         this.item.tracking.progress = watchedCount;
+      const { data: { session } } = await this.supabase.client.auth.getSession();
+      if (!session?.user) return;
+
+      const showId = this.details?.seasons?.[0]?.episodes?.[0]?.show_id || (await this.getShowId());
+      if (!showId) return;
+
+      // Calculate total watched episodes for this show directly from the database
+      const { count, error } = await (this.supabase.client
+         .from('user_episodes') as any)
+         .select('*', { count: 'exact', head: true })
+         .eq('user_id', session.user.id)
+         .eq('show_id', showId)
+         .eq('watched', true);
+
+      if (!error && count !== null) {
+         this.mediaService.updateTracking(this.item.tracking.id, { progress: count });
+         this.item.tracking.progress = count;
          this.statusUpdated.emit();
       }
    }
